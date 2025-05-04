@@ -1,0 +1,20 @@
+[
+  {
+    "title": "Interstellar",
+    "genre": "Sci-Fi",
+    "year": "2010",
+    "watched": true,
+    "rating": "4",
+    "user": "A1rboy",
+    "id": 2
+  },
+  {
+    "title": "Moneyball",
+    "genre": "Sports",
+    "year": "2011",
+    "watched": true,
+    "rating": "5",
+    "user": "A1rboy",
+    "id": 3
+  }
+]

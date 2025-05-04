@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MyMovieList</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 text-gray-800">
+  <div class="max-w-3xl mx-auto p-4">
+    <h1 class="text-3xl font-bold mb-4 text-center">MyMovieList</h1>
+
+    <!-- Login Section -->
+    <div id="loginSection" class="bg-white p-4 rounded shadow mb-6">
+      <h2 class="text-xl font-semibold mb-2">Login</h2>
+      <div class="flex gap-4">
+        <input id="username" class="border p-2 rounded w-full" placeholder="Enter your username" />
+        <button class="bg-green-600 text-white px-4 py-2 rounded" onclick="login()">Login</button>
+      </div>
+    </div>
+
+    <div id="appSection" style="display: none">
+      <form id="movieForm" class="bg-white p-4 rounded shadow mb-6">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <input id="title" class="border p-2 rounded" placeholder="Movie Title" required />
+          <input id="genre" class="border p-2 rounded" placeholder="Genre" required />
+          <input id="year" type="number" class="border p-2 rounded" placeholder="Year" required />
+        </div>
+        <div class="mt-4 flex gap-4 items-center">
+          <label class="flex items-center gap-2">
+            <input type="checkbox" id="watched" /> Watched
+          </label>
+          <select id="rating" class="border p-2 rounded">
+            <option value="">Rating</option>
+            <option value="1">1</option>
+            <option value="2">2</option>
+            <option value="3">3</option>
+            <option value="4">4</option>
+            <option value="5">5</option>
+          </select>
+          <button class="bg-blue-600 text-white px-4 py-2 rounded" type="submit">Add Movie</button>
+        </div>
+      </form>
+
+      <!-- Filters -->
+      <div class="bg-white p-4 rounded shadow mb-6">
+        <h2 class="text-lg font-semibold mb-2">Filter Movies</h2>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <input id="filterGenre" class="border p-2 rounded" placeholder="Filter by Genre" />
+          <select id="filterRating" class="border p-2 rounded">
+            <option value="">All Ratings</option>
+            <option value="1">1</option>
+            <option value="2">2</option>
+            <option value="3">3</option>
+            <option value="4">4</option>
+            <option value="5">5</option>
+          </select>
+          <select id="filterWatched" class="border p-2 rounded">
+            <option value="">All</option>
+            <option value="true">Watched</option>
+            <option value="false">To-Watch</option>
+          </select>
+        </div>
+      </div>
+
+      <div id="moviesList" class="space-y-4"></div>
+    </div>
+  </div>
+
+  <script>
+    let currentUser = null;
+    const API = 'http://localhost:5000/movies';
+    let allMovies = [];
+
+    function login() {
+      const username = document.getElementById('username').value.trim();
+      if (username) {
+        currentUser = username;
+        document.getElementById('loginSection').style.display = 'none';
+        document.getElementById('appSection').style.display = 'block';
+        fetchMovies();
+      } else {
+        alert('Please enter a username.');
+      }
+    }
+
+    async function fetchMovies() {
+      const res = await fetch(`${API}?user=${encodeURIComponent(currentUser)}`);
+      const movies = await res.json();
+      allMovies = movies;
+      applyFilters();
+    }
+
+    function applyFilters() {
+      const genre = document.getElementById('filterGenre').value.toLowerCase();
+      const rating = document.getElementById('filterRating').value;
+      const watched = document.getElementById('filterWatched').value;
+
+      let filtered = allMovies.filter(movie => {
+        const matchesGenre = genre ? movie.genre.toLowerCase().includes(genre) : true;
+        const matchesRating = rating ? movie.rating === rating : true;
+        const matchesWatched = watched !== '' ? movie.watched.toString() === watched : true;
+        return matchesGenre && matchesRating && matchesWatched;
+      });
+
+      displayMovies(filtered);
+    }
+
+    function displayMovies(movies) {
+      const container = document.getElementById('moviesList');
+      container.innerHTML = '';
+      movies.forEach(movie => {
+        const div = document.createElement('div');
+        div.className = 'bg-white p-4 rounded shadow';
+        div.innerHTML = `
+          <div class="flex justify-between">
+            <div>
+              <h2 class="text-xl font-semibold">${movie.title} (${movie.year})</h2>
+              <p class="text-sm text-gray-600">${movie.genre} | Rating: ${movie.rating || 'N/A'} | ${movie.watched ? 'Watched' : 'To-Watch'}</p>
+            </div>
+            <div class="space-x-2">
+              <button onclick="deleteMovie(${movie.id})" class="bg-red-500 text-white px-2 py-1 rounded">Delete</button>
+            </div>
+          </div>
+        `;
+        container.appendChild(div);
+      });
+    }
+
+    document.getElementById('movieForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const title = document.getElementById('title').value;
+      const genre = document.getElementById('genre').value;
+      const year = document.getElementById('year').value;
+      const watched = document.getElementById('watched').checked;
+      const rating = document.getElementById('rating').value;
+
+      await fetch(API, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title, genre, year, watched, rating, user: currentUser })
+      });
+
+      e.target.reset();
+      fetchMovies();
+    });
+
+    async function deleteMovie(id) {
+      await fetch(`${API}/${id}?user=${encodeURIComponent(currentUser)}`, { method: 'DELETE' });
+      fetchMovies();
+    }
+
+    document.getElementById('filterGenre').addEventListener('input', applyFilters);
+    document.getElementById('filterRating').addEventListener('change', applyFilters);
+    document.getElementById('filterWatched').addEventListener('change', applyFilters);
+  </script>
+</body>
+</html>
